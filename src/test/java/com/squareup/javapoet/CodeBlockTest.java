@@ -15,11 +15,15 @@
  */
 package com.squareup.javapoet;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public final class CodeBlockTest {
@@ -39,12 +43,20 @@ public final class CodeBlockTest {
     assertThat(a.toString()).isEqualTo("delicious taco");
   }
 
+  @Test public void isEmpty() {
+    assertTrue(CodeBlock.builder().isEmpty());
+    assertTrue(CodeBlock.builder().add("").isEmpty());
+    assertFalse(CodeBlock.builder().add(" ").isEmpty());
+  }
+
   @Test public void indentCannotBeIndexed() {
     try {
       CodeBlock.builder().add("$1>", "taco").build();
       fail();
     } catch (IllegalArgumentException exp) {
-      assertThat(exp).hasMessageThat().isEqualTo("$$, $>, $<, $[, $], and $W may not have an index");
+      assertThat(exp)
+          .hasMessageThat()
+          .isEqualTo("$$, $>, $<, $[, $], $W, and $Z may not have an index");
     }
   }
 
@@ -53,7 +65,9 @@ public final class CodeBlockTest {
       CodeBlock.builder().add("$1<", "taco").build();
       fail();
     } catch (IllegalArgumentException exp) {
-      assertThat(exp).hasMessageThat().isEqualTo("$$, $>, $<, $[, $], and $W may not have an index");
+      assertThat(exp)
+          .hasMessageThat()
+          .isEqualTo("$$, $>, $<, $[, $], $W, and $Z may not have an index");
     }
   }
 
@@ -62,7 +76,9 @@ public final class CodeBlockTest {
       CodeBlock.builder().add("$1$", "taco").build();
       fail();
     } catch (IllegalArgumentException exp) {
-      assertThat(exp).hasMessageThat().isEqualTo("$$, $>, $<, $[, $], and $W may not have an index");
+      assertThat(exp)
+          .hasMessageThat()
+          .isEqualTo("$$, $>, $<, $[, $], $W, and $Z may not have an index");
     }
   }
 
@@ -71,7 +87,9 @@ public final class CodeBlockTest {
       CodeBlock.builder().add("$1[", "taco").build();
       fail();
     } catch (IllegalArgumentException exp) {
-      assertThat(exp).hasMessageThat().isEqualTo("$$, $>, $<, $[, $], and $W may not have an index");
+      assertThat(exp)
+          .hasMessageThat()
+          .isEqualTo("$$, $>, $<, $[, $], $W, and $Z may not have an index");
     }
   }
 
@@ -80,7 +98,9 @@ public final class CodeBlockTest {
       CodeBlock.builder().add("$1]", "taco").build();
       fail();
     } catch (IllegalArgumentException exp) {
-      assertThat(exp).hasMessageThat().isEqualTo("$$, $>, $<, $[, $], and $W may not have an index");
+      assertThat(exp)
+          .hasMessageThat()
+          .isEqualTo("$$, $>, $<, $[, $], $W, and $Z may not have an index");
     }
   }
 
@@ -280,5 +300,43 @@ public final class CodeBlockTest {
     } catch (IllegalStateException expected) {
       assertThat(expected).hasMessageThat().isEqualTo("statement exit $] has no matching statement enter $[");
     }
+  }
+
+  @Test public void join() {
+    List<CodeBlock> codeBlocks = new ArrayList<>();
+    codeBlocks.add(CodeBlock.of("$S", "hello"));
+    codeBlocks.add(CodeBlock.of("$T", ClassName.get("world", "World")));
+    codeBlocks.add(CodeBlock.of("need tacos"));
+
+    CodeBlock joined = CodeBlock.join(codeBlocks, " || ");
+    assertThat(joined.toString()).isEqualTo("\"hello\" || world.World || need tacos");
+  }
+
+  @Test public void joining() {
+    List<CodeBlock> codeBlocks = new ArrayList<>();
+    codeBlocks.add(CodeBlock.of("$S", "hello"));
+    codeBlocks.add(CodeBlock.of("$T", ClassName.get("world", "World")));
+    codeBlocks.add(CodeBlock.of("need tacos"));
+
+    CodeBlock joined = codeBlocks.stream().collect(CodeBlock.joining(" || "));
+    assertThat(joined.toString()).isEqualTo("\"hello\" || world.World || need tacos");
+  }
+
+  @Test public void joiningSingle() {
+    List<CodeBlock> codeBlocks = new ArrayList<>();
+    codeBlocks.add(CodeBlock.of("$S", "hello"));
+
+    CodeBlock joined = codeBlocks.stream().collect(CodeBlock.joining(" || "));
+    assertThat(joined.toString()).isEqualTo("\"hello\"");
+  }
+
+  @Test public void joiningWithPrefixAndSuffix() {
+    List<CodeBlock> codeBlocks = new ArrayList<>();
+    codeBlocks.add(CodeBlock.of("$S", "hello"));
+    codeBlocks.add(CodeBlock.of("$T", ClassName.get("world", "World")));
+    codeBlocks.add(CodeBlock.of("need tacos"));
+
+    CodeBlock joined = codeBlocks.stream().collect(CodeBlock.joining(" || ", "start {", "} end"));
+    assertThat(joined.toString()).isEqualTo("start {\"hello\" || world.World || need tacos} end");
   }
 }
